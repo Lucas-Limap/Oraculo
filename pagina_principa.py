@@ -4,10 +4,6 @@ from langchain.memory import ConversationBufferMemory
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI
 
-
-
-#api_key_groq = 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
-
 TIPOS_DE_ARQUIVOS_VALIDOS = [
     'Site', 'Youtube', 'PDF', 'CSV', 'TXT'
 
