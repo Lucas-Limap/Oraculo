@@ -1,4 +1,12 @@
 import streamlit as st
+from langchain.memory import ConversationBufferMemory
+
+from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
+
+
+
+#api_key_groq = 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
 
 TIPOS_DE_ARQUIVOS_VALIDOS = [
     'Site', 'Youtube', 'PDF', 'CSV', 'TXT'
@@ -6,8 +14,10 @@ TIPOS_DE_ARQUIVOS_VALIDOS = [
 ]
 
 CONFIG_MODELOS = {
-    'Groq': {'modelos': ['llama3-70b-8192', 'gemma2-9b-it', 'whisper-large-v3']},
-    'OpenAI': {'modelos': ['gpt-4o-mini', 'gpt-4o']}
+    'Groq': {'modelos': ['llama3-70b-8192', 'gemma2-9b-it', 'whisper-large-v3'],
+             'chat': ChatGroq},
+    'OpenAI': {'modelos': ['gpt-4o-mini', 'gpt-4o'],
+               'chat':ChatOpenAI}
 }
 
 MENSAGEM_EXEMPLO = [
@@ -17,21 +27,34 @@ MENSAGEM_EXEMPLO = [
 
 ]
 
+
+MEMORIA = ConversationBufferMemory()
+
+
+def carrrga_modelo(provedor, modelo, api_key):
+    chat = CONFIG_MODELOS[provedor]['chat'](model=modelo,api_key=api_key)
+    st.session_state['chat']= chat
+
+
+
 def pagina_chat():
     st.header('Bem-vindo ao Oráculo', divider=True )
 
-    mensagens=st.session_state.get('mensagens', []) 
 
-    mensagens = st.session_state.get('mensagens', MENSAGEM_EXEMPLO)
-    for mensagem in mensagens:
-        chat= st.chat_message(mensagem[0])
-        chat.markdown(mensagem[1])
+    chat_model= st.session_state.get('chat')
+    memoria=st.session_state.get('memoria', MEMORIA) 
+    for mensagem in memoria.buffer_as_messages:
+        chat= st.chat_message(mensagem.type)
+        chat.markdown(mensagem.content)
 
     input_usuario= st.chat_input('Fale com o oráculo:')
     if input_usuario:
-        mensagens.append(('user',input_usuario))
+        memoria.chat_memory.add_user_message(input_usuario)
+        resposta = chat_model.invoke(input_usuario).content
+        memoria.chat_memory.add_ai_message(resposta)
+        
 
-        st.session_state['mensagens'] = mensagens
+        st.session_state['memoria'] = memoria
         st.rerun()
 
 def sidebar():
@@ -58,6 +81,9 @@ def sidebar():
             value=st.session_state.get(f'api_keys_{provedor}'))
 
         st.session_state[f'api_keys_{provedor}'] = api_key
+
+    if st.button('Inicializar Oráculo', use_container_width=True):
+        carrrga_modelo(provedor, modelo, api_key)
 
 
 
